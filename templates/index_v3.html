@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeaseMate | Rental Contract Analyser</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+
+        /* ---- Animations ---- */
+        .fade-in  { animation: fadeIn 0.45s ease-out forwards; }
+        .slide-up { animation: slideUp 0.55s ease-out forwards; }
+
+        @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* stagger children */
+        .stagger > * { opacity: 0; animation: slideUp 0.5s ease-out forwards; }
+        .stagger > *:nth-child(1) { animation-delay: 0.05s; }
+        .stagger > *:nth-child(2) { animation-delay: 0.12s; }
+        .stagger > *:nth-child(3) { animation-delay: 0.19s; }
+        .stagger > *:nth-child(4) { animation-delay: 0.26s; }
+        .stagger > *:nth-child(5) { animation-delay: 0.33s; }
+        .stagger > *:nth-child(6) { animation-delay: 0.40s; }
+
+        /* ---- Drop zone ---- */
+        #dropZone.drag-active {
+            border-color: #6C63FF;
+            background-color: #f5f3ff;
+            transform: scale(1.015);
+        }
+
+        /* ---- Post-it notes ---- */
+        .postit {
+            position: relative;
+            border-radius: 2px;
+            box-shadow: 3px 4px 14px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .postit:hover {
+            transform: rotate(0deg) scale(1.04) !important;
+            box-shadow: 6px 8px 20px rgba(0,0,0,0.22);
+            z-index: 10;
+        }
+        /* tape strip pseudo-element */
+        .postit::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-1deg);
+            width: 56px;
+            height: 18px;
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(2px);
+            border-radius: 1px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        .postit-title { font-family: 'Caveat', cursive; }
+
+        /* ---- Severity cards ---- */
+        .severity-card { transition: box-shadow 0.2s, transform 0.2s; }
+        .severity-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.1); transform: translateY(-2px); }
+
+        /* ---- Severity chips ---- */
+        .chip-HIGH   { background: #fee2e2; color: #b91c1c; }
+        .chip-MEDIUM { background: #fef3c7; color: #92400e; }
+        .chip-LOW    { background: #dcfce7; color: #166534; }
+
+        /* ---- Questionnaire toggle chips ---- */
+        .chip {
+            padding: 0.45rem 1rem;
+            border-radius: 999px;
+            border: 2px solid #e2e8f0;
+            background: #f8fafc;
+            color: #475569;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .chip:hover { border-color: #a78bfa; color: #6d28d9; background: #f5f3ff; }
+        .chip.selected {
+            background: #6d28d9;
+            border-color: #6d28d9;
+            color: #ffffff;
+        }
+        /* ---- Accordion ---- */
+        details > summary { list-style: none; cursor: pointer; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] summary .chevron { transform: rotate(180deg); }
+        .chevron { transition: transform 0.25s ease; }
+
+        /* ---- Scrollbar ---- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen selection:bg-violet-200">
+
+<!-- ===== HEADER ===== -->
+<header class="w-full px-6 py-5 flex items-center justify-between max-w-5xl mx-auto">
+    <div class="flex items-center gap-2 cursor-pointer" onclick="resetApp()">
+        <div class="bg-violet-600 p-2 rounded-lg -rotate-3 shadow-md shadow-violet-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h1 class="text-2xl font-black tracking-tight">Lease<span class="text-violet-600">Mate</span></h1>
+    </div>
+    <span class="text-xs font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200 hidden sm:block">
+        🇬🇧 For UK Students & Young Renters
+    </span>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 pb-20 pt-4">
+
+<!-- ============================= VIEW: UPLOAD ============================= -->
+<div id="view-upload" class="fade-in">
+    <div class="text-center max-w-2xl mx-auto mb-10">
+        <div class="inline-block bg-violet-100 text-violet-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4">Free · No account needed</div>
+        <h2 class="text-4xl md:text-5xl font-black mb-5 leading-tight">
+            Don't sign a dodgy contract.<br/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-pink-500">
+                Unless it's carefully looked over twice.
+            </span>
+        </h2>
+        <p class="text-base text-slate-500 leading-relaxed">
+            Upload your tenancy agreement. We strip the legal jargon and flag exactly what matters — in plain English.
+        </p>
+    </div>
+
+    <form id="uploadForm">
+        <div id="dropZone" class="relative flex flex-col items-center justify-center w-full max-w-2xl mx-auto h-72 border-[3px] border-dashed border-slate-300 bg-white rounded-3xl transition-all duration-200 cursor-pointer hover:border-violet-400 hover:bg-violet-50/40">
+            <input type="file" id="fileInput" name="contract_file" accept=".pdf,.doc,.docx" class="hidden" />
+
+            <div class="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mb-4 shadow-inner rotate-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+
+            <p id="dropText" class="text-lg font-bold text-slate-700 mb-1">Drag & drop your contract here</p>
+            <p class="text-sm text-slate-400 mb-5">PDF or DOCX &middot; Max 10MB</p>
+
+            <button type="button" onclick="document.getElementById('fileInput').click()" class="bg-violet-600 text-white font-semibold py-2.5 px-7 rounded-xl shadow-md hover:bg-violet-700 transition-all text-sm">
+                Browse Files
+            </button>
+        </div>
+    </form>
+
+    <!-- ===== QUESTIONNAIRE (shown after file selected) ===== -->
+    <div id="questionnaire" class="hidden max-w-2xl mx-auto mt-8 bg-white border border-slate-200 rounded-3xl shadow-sm p-6 slide-up">
+        <p class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-5">Quick questions — helps us personalise your analysis</p>
+
+        <!-- Q1: Renting alone or with others -->
+        <div class="mb-5">
+            <p class="text-sm font-semibold text-slate-800 mb-2">Are you renting alone or with others?</p>
+            <div class="flex gap-2 flex-wrap" data-q="renting_with">
+                <button class="chip" data-val="alone">🧍 Just me</button>
+                <button class="chip" data-val="with_others">👥 With flatmates</button>
+            </div>
+        </div>
+
+        <!-- Q2: UK guarantor -->
+        <div class="mb-5">
+            <p class="text-sm font-semibold text-slate-800 mb-2">Do you have a UK-based guarantor?</p>
+            <div class="flex gap-2 flex-wrap" data-q="guarantor">
+                <button class="chip" data-val="yes">✅ Yes</button>
+                <button class="chip" data-val="no">❌ No</button>
+                <button class="chip" data-val="unsure">🤷 Not sure</button>
+            </div>
+        </div>
+
+        <!-- Q3: International student -->
+        <div class="mb-5">
+            <p class="text-sm font-semibold text-slate-800 mb-2">Are you an international student?</p>
+            <div class="flex gap-2 flex-wrap" data-q="international">
+                <button class="chip" data-val="yes">🌍 Yes</button>
+                <button class="chip" data-val="no">🇬🇧 No</button>
+            </div>
+        </div>
+
+        <!-- Q4: Over 18 -->
+        <div class="mb-5">
+            <p class="text-sm font-semibold text-slate-800 mb-2">Are you over 18 years old?</p>
+            <div class="flex gap-2 flex-wrap" data-q="over_18">
+                <button class="chip" data-val="yes">Yes, 18+</button>
+                <button class="chip" data-val="no">No, under 18</button>
+            </div>
+        </div>
+
+        <!-- Q5: Paying rent upfront -->
+        <div class="mb-6">
+            <p class="text-sm font-semibold text-slate-800 mb-2">Are you paying rent upfront?</p>
+            <div class="flex gap-2 flex-wrap" data-q="upfront_rent">
+                <button class="chip" data-val="yes">💸 Yes</button>
+                <button class="chip" data-val="no">📅 No, monthly</button>
+            </div>
+        </div>
+
+        <!-- Analyse button — disabled until all answered -->
+        <button id="analyseBtn" disabled
+            class="w-full py-3.5 rounded-2xl font-black text-base tracking-wide transition-all duration-200
+                   bg-slate-200 text-slate-400 cursor-not-allowed opacity-50">
+            Answer all questions to continue →
+        </button>
+    </div>
+
+    <!-- How it works -->
+    <div class="flex flex-col sm:flex-row gap-6 justify-center mt-12 max-w-2xl mx-auto stagger">
+        <div class="flex items-start gap-3 flex-1">
+            <div class="w-8 h-8 rounded-full bg-violet-600 text-white text-sm font-black flex items-center justify-center shrink-0 mt-0.5">1</div>
+            <div>
+                <p class="font-bold text-slate-800 text-sm">Upload your contract</p>
+                <p class="text-slate-500 text-xs leading-relaxed">PDF or Word doc — we handle the rest</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-3 flex-1">
+            <div class="w-8 h-8 rounded-full bg-violet-600 text-white text-sm font-black flex items-center justify-center shrink-0 mt-0.5">2</div>
+            <div>
+                <p class="font-bold text-slate-800 text-sm">AI reads every clause</p>
+                <p class="text-slate-500 text-xs leading-relaxed">We find the red flags, green bits & key terms</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-3 flex-1">
+            <div class="w-8 h-8 rounded-full bg-violet-600 text-white text-sm font-black flex items-center justify-center shrink-0 mt-0.5">3</div>
+            <div>
+                <p class="font-bold text-slate-800 text-sm">Get your plain-English summary</p>
+                <p class="text-slate-500 text-xs leading-relaxed">Know exactly what you're signing</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================= VIEW: PROCESSING ============================= -->
+<div id="view-processing" class="hidden flex flex-col items-center justify-center py-24 fade-in">
+    <div class="relative w-28 h-28 mb-8">
+        <div class="absolute inset-0 border-4 border-violet-100 rounded-full"></div>
+        <div class="absolute inset-0 border-4 border-violet-600 rounded-full border-t-transparent animate-spin"></div>
+        <div class="absolute inset-0 flex items-center justify-center text-3xl animate-pulse">📄</div>
+    </div>
+
+    <h3 class="text-2xl font-black mb-2 text-center">Reading the small print...</h3>
+    <p class="text-slate-500 text-sm mb-8 text-center">This won't take long. Promise.</p>
+
+    <div class="flex flex-col gap-2 text-sm text-slate-500 font-medium text-center">
+        <p class="animate-pulse">📤 Uploading your contract...</p>
+        <p class="animate-pulse" style="animation-delay:0.6s">🔍 Extracting text...</p>
+        <p class="animate-pulse text-violet-600 font-semibold" style="animation-delay:1.2s">✨ Preparing your summary...</p>
+    </div>
+
+    <div class="mt-10 bg-amber-50 border border-amber-200 text-amber-800 px-5 py-3 rounded-xl flex items-start gap-3 max-w-sm text-sm">
+        <span class="text-lg shrink-0">💡</span>
+        <p>Did you know? 40% of UK student renters have never checked if their deposit is properly protected.</p>
+    </div>
+</div>
+
+<!-- ============================= VIEW: RESULTS ============================= -->
+<div id="view-results" class="hidden slide-up">
+
+    <!-- Top bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center gap-3">
+            <div class="bg-green-100 p-2 rounded-full text-green-600 text-lg">✅</div>
+            <div>
+                <h2 class="font-bold text-slate-900">Analysis Complete</h2>
+                <p id="res-filename" class="text-sm text-slate-400">contract.pdf</p>
+            </div>
+        </div>
+        <button onclick="resetApp()" class="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-violet-600 bg-slate-100 hover:bg-violet-50 px-4 py-2 rounded-lg transition-colors">
+            ↩ Analyse Another
+        </button>
+    </div>
+
+    <!-- Key Terms strip -->
+    <div id="key-terms-strip" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-10 stagger">
+        <!-- injected by JS -->
+    </div>
+
+    <!-- -------- TL;DR POST-IT SECTION -------- -->
+    <div class="mb-14">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="text-2xl">⚡</span>
+            <h3 class="text-2xl font-black tracking-tight">The TL;DR</h3>
+            <span class="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-wider ml-1">Read this first</span>
+        </div>
+        <p class="text-slate-500 text-sm mb-7 ml-9">The stuff that actually matters. Tap to expand.</p>
+
+        <div id="postit-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 px-2 stagger">
+            <!-- injected by JS -->
+        </div>
+    </div>
+
+    <!-- -------- MUST KNOW SEVERITY CARDS -------- -->
+    <div class="mb-14">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="text-2xl">📋</span>
+            <h3 class="text-2xl font-black tracking-tight">Must Know</h3>
+        </div>
+        <p class="text-slate-500 text-sm mb-6 ml-9">Key clauses — tap any card to see the full detail + what to do.</p>
+
+        <div id="must-know-container" class="flex flex-col gap-4 stagger">
+            <!-- injected by JS -->
+        </div>
+    </div>
+
+    <!-- -------- GOOD TO KNOW -------- -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200">
+        <div class="flex items-center gap-2 mb-1">
+            <span class="text-2xl">🧠</span>
+            <h3 class="text-2xl font-black tracking-tight">Good to Know</h3>
+        </div>
+        <p class="text-slate-500 text-sm mb-6 ml-9">Not urgent, but worth knowing before you move in.</p>
+
+        <div id="good-to-know-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 stagger">
+            <!-- injected by JS -->
+        </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <p class="text-center text-xs text-slate-400 mt-10 px-4">
+        ⚖️ LeaseMate provides simplified summaries for informational purposes only — not legal advice. Always consult <a href="https://england.shelter.org.uk" class="underline hover:text-violet-600" target="_blank">Shelter</a> or <a href="https://www.citizensadvice.org.uk/housing" class="underline hover:text-violet-600" target="_blank">Citizens Advice</a> for legal questions.
+    </p>
+
+</div>
+<!-- end view-results -->
+
+</main>
+
+<script>
+// =====================================================================
+// DOM refs
+// =====================================================================
+const viewUpload     = document.getElementById('view-upload');
+const viewProcessing = document.getElementById('view-processing');
+const viewResults    = document.getElementById('view-results');
+const dropZone       = document.getElementById('dropZone');
+const fileInput      = document.getElementById('fileInput');
+const dropText       = document.getElementById('dropText');
+const questionnaire  = document.getElementById('questionnaire');
+const analyseBtn     = document.getElementById('analyseBtn');
+
+// =====================================================================
+// Questionnaire state
+// =====================================================================
+const QUESTIONS = ['renting_with', 'guarantor', 'international', 'over_18', 'upfront_rent'];
+const answers   = {};
+let   pendingFile = null;
+
+// Wire up chip clicks
+document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+        const group = chip.closest('[data-q]').dataset.q;
+        // Deselect siblings
+        chip.closest('[data-q]').querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        answers[group] = chip.dataset.val;
+        checkAllAnswered();
+    });
+});
+
+function checkAllAnswered() {
+    const allDone = QUESTIONS.every(q => answers[q] !== undefined);
+    analyseBtn.disabled = !allDone;
+    if (allDone) {
+        analyseBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-200', 'text-slate-400');
+        analyseBtn.classList.add('bg-violet-600', 'text-white', 'hover:bg-violet-700', 'cursor-pointer');
+    } else {
+        analyseBtn.classList.remove('bg-violet-600', 'text-white', 'hover:bg-violet-700', 'cursor-pointer');
+        analyseBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-200', 'text-slate-400');
+    }
+}
+
+analyseBtn.addEventListener('click', () => {
+    if (!analyseBtn.disabled && pendingFile) {
+        submitUpload(pendingFile);
+    }
+});
+
+// =====================================================================
+// View state
+// =====================================================================
+function setView(state) {
+    [viewUpload, viewProcessing, viewResults].forEach(v => v.classList.add('hidden'));
+    if (state === 'upload')     viewUpload.classList.remove('hidden');
+    if (state === 'processing') viewProcessing.classList.remove('hidden');
+    if (state === 'results')    viewResults.classList.remove('hidden');
+}
+
+function resetApp() {
+    pendingFile = null;
+    fileInput.value = '';
+    dropText.textContent = 'Drag & drop your contract here';
+    dropZone.classList.remove('drag-active');
+    // Hide questionnaire and reset answers
+    questionnaire.classList.add('hidden');
+    Object.keys(answers).forEach(k => delete answers[k]);
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    analyseBtn.disabled = true;
+    analyseBtn.classList.remove('bg-violet-600', 'text-white', 'hover:bg-violet-700', 'cursor-pointer');
+    analyseBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-200', 'text-slate-400');
+    setView('upload');
+}
+
+// =====================================================================
+// Drag & drop
+// =====================================================================
+// dropZone click is handled by the Browse Files button inside it
+
+['dragenter','dragover','dragleave','drop'].forEach(e => {
+    dropZone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); });
+});
+
+['dragenter','dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('drag-active')));
+['dragleave','drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('drag-active')));
+
+dropZone.addEventListener('drop', e => revealQuestionnaire(e.dataTransfer.files[0]));
+fileInput.addEventListener('change', e => revealQuestionnaire(e.target.files[0]));
+
+// =====================================================================
+// Step 1: File selected → reveal questionnaire
+// =====================================================================
+function revealQuestionnaire(file) {
+    if (!file) return;
+    pendingFile = file;
+    dropText.textContent = '✅ ' + file.name;
+    dropZone.classList.add('drag-active');  // keep it highlighted
+    questionnaire.classList.remove('hidden');
+    questionnaire.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    checkAllAnswered();
+}
+
+// =====================================================================
+// Step 2: Build [STUDENT CONTEXT] block from answers
+// =====================================================================
+function buildContextBlock() {
+    const labelMap = {
+        renting_with: { label: 'Renting alone or with others',
+                        map:   { alone: 'Just me', with_others: 'With flatmates/others' } },
+        guarantor:    { label: 'Has UK-based guarantor',
+                        map:   { yes: 'Yes', no: 'No', unsure: 'Not sure' } },
+        international:{ label: 'International student',
+                        map:   { yes: 'Yes', no: 'No' } },
+        over_18:      { label: 'Over 18 years old',
+                        map:   { yes: 'Yes', no: 'No' } },
+        upfront_rent: { label: 'Paying rent upfront',
+                        map:   { yes: 'Yes (lump sum)', no: 'No (monthly)' } },
+    };
+    const lines = QUESTIONS.map(q => {
+        const cfg = labelMap[q];
+        const val = cfg.map[answers[q]] || answers[q];
+        return `- ${cfg.label}: ${val}`;
+    });
+    return [
+        '[STUDENT CONTEXT]',
+        '(NOT part of the contract. Use this to personalise the analysis.)',
+        '',
+        ...lines,
+        '',
+        '[CONTRACT TEXT BELOW]',
+        '',
+    ].join('\n');
+}
+
+// =====================================================================
+// Step 3: Upload file + context block, then poll for results
+// =====================================================================
+async function submitUpload(file) {
+    setView('processing');
+
+    const contextBlock = buildContextBlock();
+    const fd = new FormData();
+    fd.append('contract_file', file);
+    fd.append('context_block', contextBlock);
+
+    try {
+        const upRes = await fetch('/upload', { method: 'POST', body: fd });
+        if (!upRes.ok) throw new Error('Upload failed — check the file and try again.');
+        // Start polling — results.json won't exist until human drops it in
+        pollForResults(file.name);
+    } catch (err) {
+        alert('⚠️ ' + err.message);
+        resetApp();
+    }
+}
+
+// =====================================================================
+// Polling — waits up to 3 minutes for results.json to be updated
+// =====================================================================
+function pollForResults(filename) {
+    let attempts = 0;
+    const MAX_ATTEMPTS = 60;   // 60 × 3s = 3 minutes
+    const INTERVAL_MS  = 3000;
+
+    const timer = setInterval(async () => {
+        attempts++;
+        try {
+            const res = await fetch('/get-results');
+            if (res.ok) {
+                clearInterval(timer);
+                const data = await res.json();
+                renderResults(filename, data);
+                setView('results');
+                return;
+            }
+            // 404 = results not ready yet — keep polling
+        } catch (_) { /* network blip — keep polling */ }
+
+        if (attempts >= MAX_ATTEMPTS) {
+            clearInterval(timer);
+            alert('⏱️ Timed out waiting for results. Drop results.json in the output folder and refresh the page.');
+            resetApp();
+        }
+    }, INTERVAL_MS);
+}
+
+// =====================================================================
+// Render results
+// =====================================================================
+function renderResults(filename, data) {
+    document.getElementById('res-filename').textContent = filename;
+    renderKeyTerms(data.key_terms || {});
+    renderPostIts(data.tldr_flags || []);
+    renderMustKnow(data.must_know || []);
+    renderGoodToKnow(data.good_to_know || []);
+}
+
+// ---- Key Terms strip ----
+function renderKeyTerms(kt) {
+    const items = [
+        { label: 'Property',      value: kt.property_address || '—', emoji: '🏠' },
+        { label: 'Monthly Rent',  value: kt.monthly_rent     || '—', emoji: '💷' },
+        { label: 'Deposit',       value: kt.deposit          || '—', emoji: '🔒' },
+        { label: 'Duration',      value: kt.tenancy_length   || '—', emoji: '📅' },
+        { label: 'Notice Period', value: kt.notice_period    || '—', emoji: '📬' },
+    ];
+
+    document.getElementById('key-terms-strip').innerHTML = items.map(it => `
+        <div class="bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm flex flex-col gap-0.5">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">${it.emoji} ${it.label}</p>
+            <p class="font-bold text-slate-800 text-sm leading-snug">${escHtml(it.value)}</p>
+        </div>
+    `).join('');
+}
+
+// ---- Post-it notes ----
+const POSTIT_STYLES = {
+    danger:  { bg: '#fecaca', border: '#f87171', text: '#7f1d1d' },
+    warning: { bg: '#fef08a', border: '#facc15', text: '#713f12' },
+    good:    { bg: '#bbf7d0', border: '#4ade80', text: '#14532d' },
+};
+
+const ROTATIONS = ['-2deg', '2deg', '-1.5deg', '1.5deg', '-1deg', '2.5deg'];
+
+function renderPostIts(flags) {
+    document.getElementById('postit-grid').innerHTML = flags.map((flag, i) => {
+        const s = POSTIT_STYLES[flag.type] || POSTIT_STYLES['warning'];
+        const rot = ROTATIONS[i % ROTATIONS.length];
+        return `
+            <div class="postit p-5 flex flex-col gap-3 cursor-default"
+                 style="background:${s.bg}; border-top: 6px solid ${s.border}; color:${s.text}; transform: rotate(${rot});">
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="text-2xl">${escHtml(flag.emoji || '📌')}</span>
+                    <h4 class="postit-title text-xl font-bold leading-tight">${escHtml(flag.title)}</h4>
+                </div>
+                <p class="text-sm font-medium opacity-90 leading-relaxed">${escHtml(flag.body)}</p>
+            </div>
+        `;
+    }).join('');
+}
+
+// ---- Must Know severity cards ----
+const SEVERITY_CONFIG = {
+    HIGH:   { bg: 'bg-red-50',    border: 'border-red-400',    chip: 'chip-HIGH',   label: 'HIGH RISK' },
+    MEDIUM: { bg: 'bg-amber-50',  border: 'border-amber-400',  chip: 'chip-MEDIUM', label: 'IMPORTANT' },
+    LOW:    { bg: 'bg-green-50',  border: 'border-green-400',  chip: 'chip-LOW',    label: 'LOW RISK'  },
+};
+
+function renderMustKnow(items) {
+    document.getElementById('must-know-container').innerHTML = items.map((item, i) => {
+        const cfg = SEVERITY_CONFIG[item.severity] || SEVERITY_CONFIG['MEDIUM'];
+        return `
+            <details class="severity-card bg-white rounded-2xl border border-slate-200 overflow-hidden group shadow-sm">
+                <summary class="flex items-start gap-4 px-5 py-4 cursor-pointer hover:bg-slate-50/80 transition-colors">
+                    <div class="w-1 self-stretch rounded-full shrink-0 ${cfg.border.replace('border-', 'bg-')}"></div>
+                    <span class="text-2xl shrink-0 mt-0.5">${escHtml(item.icon || 'ℹ️')}</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap mb-1">
+                            <h4 class="font-bold text-slate-900">${escHtml(item.title)}</h4>
+                            <span class="text-xs font-black px-2 py-0.5 rounded-full ${cfg.chip} uppercase tracking-wide">${cfg.label}</span>
+                        </div>
+                        <p class="text-sm text-slate-600 leading-snug">${escHtml(item.summary)}</p>
+                    </div>
+                    <svg class="w-5 h-5 text-slate-400 shrink-0 mt-1 chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-5 pb-5 pt-1 border-t border-slate-100 ${cfg.bg}">
+                    <p class="text-sm text-slate-700 leading-relaxed mb-3">${escHtml(item.detail || '')}</p>
+                    ${item.action ? `
+                    <div class="flex items-start gap-2 bg-white/70 rounded-xl px-4 py-3 border border-slate-200">
+                        <span class="text-violet-600 font-black text-sm shrink-0">→ Action:</span>
+                        <p class="text-sm font-semibold text-slate-800 leading-snug">${escHtml(item.action)}</p>
+                    </div>` : ''}
+                </div>
+            </details>
+        `;
+    }).join('');
+}
+
+// ---- Good to Know ----
+function renderGoodToKnow(items) {
+    document.getElementById('good-to-know-container').innerHTML = items.map(item => `
+        <div class="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+            <span class="text-xl shrink-0">${escHtml(item.icon || 'ℹ️')}</span>
+            <div>
+                <p class="font-semibold text-slate-800 text-sm">${escHtml(item.title)}</p>
+                <p class="text-slate-500 text-sm leading-snug">${escHtml(item.summary)}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+// =====================================================================
+// Utils
+// =====================================================================
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
