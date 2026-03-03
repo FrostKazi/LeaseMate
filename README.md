@@ -3,6 +3,9 @@
 > **A student-friendly rental contract analyser for UK renters under 25.**
 > Built at HackSussex 2026.
 
+
+> Winners of the Grand Prize for Bloomin' Excellent (Best Overall Project).
+
 [![HackSussex 2026](https://img.shields.io/badge/HackSussex-2026-7c3aed?style=flat-square)](https://hacksussex-2026.devpost.com/)
 [![Devpost](https://img.shields.io/badge/Devpost-LeaseMate-003e54?style=flat-square&logo=devpost)](https://devpost.com/software/leasemate)
 [![Built with Flask](https://img.shields.io/badge/Backend-Flask-000000?style=flat-square&logo=flask)](https://flask.palletsprojects.com/)
@@ -12,7 +15,7 @@
 
 ## 💡 Inspiration
 
-Many young adults — especially students under 25 — don't fully understand rental contracts or their legal rights. Agreements are full of complex legal jargon that's easy to sign without truly understanding. LeaseMate was built to change that: a tool that strips the legalese, flags the risks, and explains exactly what you're agreeing to — in plain English.
+Many young adults — especially students under 25 — don't fully understand rental contracts or their legal rights. Agreements are full of complex legal jargon that's easy to sign without truly understanding. To be frank, no one likes reading through all those terms and conditions. LeaseMate was built to change that: a tool that strips the legalese, flags the risks, and explains exactly what you're agreeing to — in plain English.
 
 ---
 
@@ -114,10 +117,10 @@ We want to bring LeaseMate to Student Unions so it can help real students with t
 
 Built at **HackSussex 2026** by:
 
-- [Kazi Abdul Baset](https://devpost.com/FrostKazi) [![LinkedIn](https://img.shields.io/badge/-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/kazi-abdul-baset-ba7114242/)
-- [Leonie Ma](https://devpost.com/lsy-ma2006) [LinkedIn](https://www.linkedin.com/in/leonie-ma-046b71335/)
-- [Sadia Malik](https://devpost.com/sadia133) [LinkedIn](https://www.linkedin.com/in/sadia-malik-ab45b9306/)
-- [Muhammad Fachrul Hudallah](https://devpost.com/fachrulhuda79) [LinkedIn](https://www.linkedin.com/in/muhammadfachrulhudallah/)
+- [Kazi Abdul Baset](https://devpost.com/FrostKazi) <a href="https://www.linkedin.com/in/kazi-abdul-baset-ba7114242/"><img src="https://raw.githubusercontent.com/gauravghongde/social-icons/master/SVG/Color/LinkedIN.svg" alt="LinkedIn" height="18" align="center"></a>
+- [Leonie Ma](https://devpost.com/lsy-ma2006) <a href="https://www.linkedin.com/in/leonie-ma-046b71335/"><img src="https://raw.githubusercontent.com/gauravghongde/social-icons/master/SVG/Color/LinkedIN.svg" alt="LinkedIn" height="18" align="center"></a>
+- [Sadia Malik](https://devpost.com/sadia133) <a href="https://www.linkedin.com/in/sadia-malik-ab45b9306/"><img src="https://raw.githubusercontent.com/gauravghongde/social-icons/master/SVG/Color/LinkedIN.svg" alt="LinkedIn" height="18" align="center"></a>
+- [Muhammad Fachrul Hudallah](https://devpost.com/fachrulhuda79) <a href="https://www.linkedin.com/in/muhammadfachrulhudallah/"><img src="https://raw.githubusercontent.com/gauravghongde/social-icons/master/SVG/Color/LinkedIN.svg" alt="LinkedIn" height="18" align="center"></a>
 
 ---
 
