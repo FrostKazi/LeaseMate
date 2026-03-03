@@ -114,7 +114,7 @@ We want to bring LeaseMate to Student Unions so it can help real students with t
 
 Built at **HackSussex 2026** by:
 
-- [Kazi Abdul Baset](https://devpost.com/FrostKazi) [LinkedIn](https://www.linkedin.com/in/kazi-abdul-baset-ba7114242/)
+- [Kazi Abdul Baset](https://devpost.com/FrostKazi) [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/kazi-abdul-baset-ba7114242/)
 - [Leonie Ma](https://devpost.com/lsy-ma2006) [LinkedIn](https://www.linkedin.com/in/leonie-ma-046b71335/)
 - [Sadia Malik](https://devpost.com/sadia133) [LinkedIn](https://www.linkedin.com/in/sadia-malik-ab45b9306/)
 - [Muhammad Fachrul Hudallah](https://devpost.com/fachrulhuda79) [LinkedIn](https://www.linkedin.com/in/muhammadfachrulhudallah/)
